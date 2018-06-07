@@ -884,7 +884,7 @@ namespace ChessEngine.Engine
         {
             Thinking = true;
             NodesSearched = 0;
-			
+
 			var resultBoards = new ResultBoards();
             resultBoards.Positions = new List<Board>();
 
@@ -903,7 +903,15 @@ namespace ChessEngine.Engine
                 if (FindPlayBookMove(ref bestMove, ChessBoard, CurrentGameBook) == false ||
                     ChessBoard.FiftyMove > 45 || ChessBoard.RepeatedMove >= 2)
                 {
-					bestMove = Search.IterativeSearch(ChessBoard, PlyDepthSearched, ref NodesSearched, ref NodesQuiessence, ref pvLine, ref PlyDepthReached, ref RootMovesSearched, CurrentGameBook);
+                    DateTime startDate = DateTime.Now;
+
+                    bestMove = Search.IterativeSearch(ChessBoard, PlyDepthSearched, ref NodesSearched, ref NodesQuiessence, ref pvLine, ref PlyDepthReached, ref RootMovesSearched, CurrentGameBook);
+
+                    DateTime endDate = DateTime.Now;
+
+                    long msElapsed = (endDate.Ticks - startDate.Ticks) / 10000;
+
+                    Console.WriteLine("Elapsed AI search time: " + msElapsed.ToString() + " ms");
                 }
             }
  
