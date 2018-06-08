@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
+using MPI;
 
 namespace ChessEngine.Engine
 {
@@ -52,6 +53,10 @@ namespace ChessEngine.Engine
 
         internal static MoveContent IterativeSearch(Board examineBoard, byte depth, ref int nodesSearched, ref int nodesQuiessence, ref string pvLine, ref byte plyDepthReached, ref byte rootMovesSearched, List<OpeningMove> currentGameBook)
         {
+            Intracommunicator comm = Communicator.world;
+
+            Console.WriteLine("Process nr " + comm.Rank.ToString());
+
             List<Position> pvChild = new List<Position>();
             int alpha = -400000000;
             const int beta = 400000000;
