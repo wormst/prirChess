@@ -33,6 +33,7 @@ namespace ChessEngine.Engine
 
     #endregion
     
+    [Serializable]
     internal sealed class Piece
     {
         #region InternalMembers

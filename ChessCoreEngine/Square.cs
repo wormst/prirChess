@@ -1,6 +1,8 @@
+using System;
+
 namespace ChessEngine.Engine
 {
-    
+    [Serializable]
     internal struct Square
     {
         internal Piece Piece;

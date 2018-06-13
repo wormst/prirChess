@@ -13912,8 +13912,8 @@ namespace ChessEngine.Engine
             return false;
         }
     }
-
-    internal class OpeningMove
+    [Serializable]
+    public class OpeningMove
     {
         public string EndingFEN;
         public string StartingFEN;

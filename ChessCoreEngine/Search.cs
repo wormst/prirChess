@@ -3,17 +3,18 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
 using MPI;
+using System.Linq;
 
 namespace ChessEngine.Engine
 {
-    internal static class Search
+    public static class Search
     {
         internal static int progress;
 		
 		private static int piecesRemaining;
 		
-
-        private struct Position
+        [Serializable]
+        public struct Position
         {
             internal byte SrcPosition;
             internal byte DstPosition;
@@ -25,8 +26,9 @@ namespace ChessEngine.Engine
             {
                 return Move;
             }
-
         }
+
+       
 
         private static readonly Position[,] KillerMove = new Position[3,20];
         private static int kIndex;
@@ -49,31 +51,22 @@ namespace ChessEngine.Engine
             return score;
         }
 
-       
-
-        internal static MoveContent IterativeSearch(Board examineBoard, byte depth, ref int nodesSearched, ref int nodesQuiessence, ref string pvLine, ref byte plyDepthReached, ref byte rootMovesSearched, List<OpeningMove> currentGameBook)
+        internal static MoveContent IterativeSearch(Board examineBoard, byte depth, List<OpeningMove> currentGameBook)
         {
             Intracommunicator comm = Communicator.world;
             int numOfTasks = comm.Size;
-
-
-            List<Position> pvChild = new List<Position>();
-            int alpha = -400000000;
-            const int beta = 400000000;
             
             MoveContent bestMove = new MoveContent();
 
             //We are going to store our result boards here           
             ResultBoards succ = GetSortValidMoves(examineBoard);
 
-            rootMovesSearched = (byte)succ.Positions.Count;
-
-            if (rootMovesSearched == 1)
+            if ((byte)succ.Positions.Count == 1)
             {
                 //I only have one move
                 return succ.Positions[0].LastMove;
             }
-
+            
             int numOfPositions = succ.Positions.Count;
             int positionsChunkSizeWhole = numOfPositions / numOfTasks;
             int positionsChunkSizeRest = numOfPositions - numOfTasks * positionsChunkSizeWhole;
@@ -97,11 +90,11 @@ namespace ChessEngine.Engine
 
             List<List<Board>> tasksPos = new List<List<Board>>();
 
-                                    Console.WriteLine("All availible moves:");
-                                    foreach (Board pos in succ.Positions)
-                                    {
-                                        Console.WriteLine(pos.ToString());
-                                    }
+                                        Console.WriteLine("All availible moves:");
+                                        foreach (Board pos in succ.Positions)
+                                        {
+                                            Console.WriteLine(pos.ToString());
+                                        }
                
             int idx = 0;
             for (int i = 0; i < numOfTasks; i++)
@@ -109,22 +102,63 @@ namespace ChessEngine.Engine
                 tasksPos.Add(succ.Positions.GetRange(idx, tasksPosChunkSize[i]));
                 idx += tasksPosChunkSize[i];
 
-                                    Console.WriteLine("Moves availible for task " + i.ToString() + " :");
-                                    foreach (Board pos in tasksPos[i])
-                                    {
-                                        Console.WriteLine(pos.ToString());
-                                    }
+                                        Console.WriteLine("Moves availible for task " + i.ToString() + " :");
+                                        foreach (Board pos in tasksPos[i])
+                                        {
+                                            Console.WriteLine(pos.ToString());
+                                        }
             }
-                                        
+
+            List<InterProcessData> dataToSend = new List<InterProcessData>();
+
+            for ( int i = 0; i < numOfTasks; i++ )
+            {
+                dataToSend.Add(new InterProcessData
+                {
+                    pos = tasksPos[i],
+                    depth = depth,
+                    GameBook = currentGameBook,
+                    ExamineBoard = examineBoard
+                });
+            }
+
+            //wyslij do innych
+            for (int i = 1; i < numOfTasks; i++)
+            {
+                comm.Send<InterProcessData>(dataToSend[i], i, 0);
+            }
+
+            MoveContent bestMoveOfThisThreadProbably = SzukajSzukaj(examineBoard, dataToSend[0].pos, dataToSend[0].depth, currentGameBook);
+            List<MoveContent> bestMovesFromOtherThreads = new List<MoveContent>();
+            bestMovesFromOtherThreads.Add(bestMoveOfThisThreadProbably);
+            for (int i = 1; i < numOfTasks; i++)
+            {
+                bestMovesFromOtherThreads.Add(comm.Receive<MoveContent>(i, 0));
+            }
+
+            return bestMovesFromOtherThreads.OrderByDescending(m => m.Score).First();
+        }
+
+        public static MoveContent SzukajSzukaj(Board examineBoard, List<Board> positions, int depth, List<OpeningMove> currentGameBook)
+        {
+            List<Position> pvChild = new List<Position>();
+            int alpha = -400000000;
+            const int beta = 400000000;
+
+            MoveContent bestMove = new MoveContent();
+
+            int nodesSearched = 0;
+            int nodesQuiessence = 0;
 
             //Can I make an instant mate?
-            foreach (Board pos in succ.Positions)
+            foreach (Board pos in positions)
             {
                 //TODO: Send each (or in packs of few i.e.) board to different process, and finish if any returned bigger value
                 int value = -AlphaBeta(pos, 1, -beta, -alpha, ref nodesSearched, ref nodesQuiessence, ref pvChild, true);
 
                 if (value >= 32767)
                 {
+                    pos.LastMove.Score = value;
                     return pos.LastMove;
                 }
             }
@@ -133,24 +167,25 @@ namespace ChessEngine.Engine
 
             alpha = -400000000;
 
-            succ.Positions.Sort(Sort);
+            positions.Sort(Sort);
 
             depth--;
 
-            plyDepthReached = ModifyDepth(depth, succ.Positions.Count);
+            int plyDepthReached = ModifyDepth((byte)depth, positions.Count());
 
-            foreach (Board pos in succ.Positions)
+            foreach (Board pos in positions)
             {
                 currentBoard++;
 
-				progress = (int)((currentBoard / (decimal)succ.Positions.Count) * 100);
+                progress = (int)((currentBoard / (decimal)positions.Count) * 100);
 
                 pvChild = new List<Position>();
 
-                int value = -AlphaBeta(pos, depth, -beta, -alpha, ref nodesSearched, ref nodesQuiessence, ref pvChild, false);
+                int value = -AlphaBeta(pos, (byte)depth, -beta, -alpha, ref nodesSearched, ref nodesQuiessence, ref pvChild, false);
 
                 if (value >= 32767)
                 {
+                    pos.LastMove.Score = value;
                     return pos.LastMove;
                 }
 
@@ -173,21 +208,22 @@ namespace ChessEngine.Engine
                 //If value is greater then alpha this is the best board
                 if (value > alpha || alpha == -400000000)
                 {
-                    pvLine = pos.LastMove.ToString();
+                    //pvLine = pos.LastMove.ToString();
 
-                    foreach (Position pvPos in pvChild)
-                    {
-                        pvLine += " " + pvPos.ToString();
-                    }
+                    //foreach (Position pvPos in pvChild)
+                    //{
+                    //    pvLine += " " + pvPos.ToString();
+                    //}
 
                     alpha = value;
                     bestMove = pos.LastMove;
+                    bestMove.Score = value;
                 }
             }
 
             plyDepthReached++;
-			progress=100;
-		
+            progress = 100;
+
             return bestMove;
         }
 

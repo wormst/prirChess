@@ -4,10 +4,6 @@ using MPI;
 
 class Program
 {
-    class Data
-    {
-        //something
-    }
 
 	static void Main(string[] args)
 	{
@@ -18,12 +14,33 @@ class Program
             if(comm.Rank == 0)
             {
                 RunEngine();
-                //sending mechanism
+
+                for(int i = 1; i < comm.Size; i++)
+                {
+                    comm.Send(new InterProcessData(){ ShallQuit = true }, i, 0);
+                }
             }
             else
             {
-                Data data = comm.Receive<Data>(0, 0);
-                //process some data
+                PieceMoves.InitiateChessPieceMotion();
+                bool odbieraj = true;
+                while (odbieraj)
+                {
+                    var data = comm.Receive<InterProcessData>(0, 0);
+
+                    if (data.ShallQuit)
+                        break;
+
+                    Console.WriteLine("Moves sent to task " + comm.Rank.ToString() + " :");
+                    foreach (Board pos in data.pos)
+                    {
+                        Console.WriteLine(data.pos.ToString());
+                    }
+
+
+                    MoveContent bestMove = Search.SzukajSzukaj(data.ExamineBoard, data.pos, data.depth, data.GameBook);
+                    comm.Send<MoveContent>(bestMove, 0, 0);
+                }
             }
         }
     }

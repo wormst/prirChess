@@ -3,7 +3,8 @@ using System;
 
 namespace ChessEngine.Engine
 {
-    internal sealed class Board
+    [Serializable]
+    public sealed class Board
     {
       
         internal Square[] Squares;

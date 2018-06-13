@@ -2,7 +2,7 @@ using System;
 
 namespace ChessEngine.Engine
 {
-    
+    [Serializable]
     public struct PieceMoving
     {
         public byte DstPosition;
@@ -39,7 +39,7 @@ namespace ChessEngine.Engine
             Moved = false;
         }
     }
-   
+   [Serializable]
     public struct PieceTaken
     {
         public bool Moved;
@@ -65,8 +65,10 @@ namespace ChessEngine.Engine
         }
     }
    
+    [Serializable]
     public sealed class MoveContent
     {
+        public int Score;
         public bool EnPassantOccured;
         public PieceMoving MovingPiecePrimary;
         public PieceMoving MovingPieceSecondary;

@@ -905,7 +905,7 @@ namespace ChessEngine.Engine
                 {
                     DateTime startDate = DateTime.Now;
 
-                    bestMove = Search.IterativeSearch(ChessBoard, PlyDepthSearched, ref NodesSearched, ref NodesQuiessence, ref pvLine, ref PlyDepthReached, ref RootMovesSearched, CurrentGameBook);
+                    bestMove = Search.IterativeSearch(ChessBoard, PlyDepthSearched, CurrentGameBook);
 
                     DateTime endDate = DateTime.Now;
 
