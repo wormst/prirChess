@@ -54,13 +54,12 @@ namespace ChessEngine.Engine
         internal static MoveContent IterativeSearch(Board examineBoard, byte depth, ref int nodesSearched, ref int nodesQuiessence, ref string pvLine, ref byte plyDepthReached, ref byte rootMovesSearched, List<OpeningMove> currentGameBook)
         {
             Intracommunicator comm = Communicator.world;
+            int numOfTasks = comm.Size;
 
-            Console.WriteLine("Process nr " + comm.Rank.ToString());
 
             List<Position> pvChild = new List<Position>();
             int alpha = -400000000;
             const int beta = 400000000;
-			
             
             MoveContent bestMove = new MoveContent();
 
@@ -74,6 +73,49 @@ namespace ChessEngine.Engine
                 //I only have one move
                 return succ.Positions[0].LastMove;
             }
+
+            int numOfPositions = succ.Positions.Count;
+            int positionsChunkSizeWhole = numOfPositions / numOfTasks;
+            int positionsChunkSizeRest = numOfPositions - numOfTasks * positionsChunkSizeWhole;
+
+                                        Console.WriteLine("Total number of tasks = " + numOfTasks.ToString());
+                                        Console.WriteLine("Total valid moves = " + numOfPositions.ToString());
+                                        
+
+            int[] tasksPosChunkSize = new int[numOfTasks];
+            for (int i = 0; i < numOfTasks; i++)
+            {
+                tasksPosChunkSize[i] = positionsChunkSizeWhole;
+                if(positionsChunkSizeRest > 0)
+                {
+                    tasksPosChunkSize[i] += 1;
+                    positionsChunkSizeRest--;
+                }
+
+                                        Console.WriteLine("tasksPosChunkSize[" + i.ToString() + "] = " + tasksPosChunkSize[i].ToString());
+            }
+
+            List<List<Board>> tasksPos = new List<List<Board>>();
+
+                                    Console.WriteLine("All availible moves:");
+                                    foreach (Board pos in succ.Positions)
+                                    {
+                                        Console.WriteLine(pos.ToString());
+                                    }
+               
+            int idx = 0;
+            for (int i = 0; i < numOfTasks; i++)
+            {
+                tasksPos.Add(succ.Positions.GetRange(idx, tasksPosChunkSize[i]));
+                idx += tasksPosChunkSize[i];
+
+                                    Console.WriteLine("Moves availible for task " + i.ToString() + " :");
+                                    foreach (Board pos in tasksPos[i])
+                                    {
+                                        Console.WriteLine(pos.ToString());
+                                    }
+            }
+                                        
 
             //Can I make an instant mate?
             foreach (Board pos in succ.Positions)
