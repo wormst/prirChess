@@ -31,13 +31,6 @@ class Program
                     if (data.ShallQuit)
                         break;
 
-                    Console.WriteLine("Moves sent to task " + comm.Rank.ToString() + " :");
-                    foreach (Board pos in data.pos)
-                    {
-                        Console.WriteLine(data.pos.ToString());
-                    }
-
-
                     MoveContent bestMove = Search.SzukajSzukaj(data.ExamineBoard, data.pos, data.depth, data.GameBook);
                     comm.Send<MoveContent>(bestMove, 0, 0);
                 }

@@ -903,15 +903,7 @@ namespace ChessEngine.Engine
                 if (FindPlayBookMove(ref bestMove, ChessBoard, CurrentGameBook) == false ||
                     ChessBoard.FiftyMove > 45 || ChessBoard.RepeatedMove >= 2)
                 {
-                    DateTime startDate = DateTime.Now;
-
                     bestMove = Search.IterativeSearch(ChessBoard, PlyDepthSearched, CurrentGameBook);
-
-                    DateTime endDate = DateTime.Now;
-
-                    long msElapsed = (endDate.Ticks - startDate.Ticks) / 10000;
-
-                    Console.WriteLine("Elapsed AI search time: " + msElapsed.ToString() + " ms");
                 }
             }
  

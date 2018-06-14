@@ -71,9 +71,6 @@ namespace ChessEngine.Engine
             int positionsChunkSizeWhole = numOfPositions / numOfTasks;
             int positionsChunkSizeRest = numOfPositions - numOfTasks * positionsChunkSizeWhole;
 
-                                        Console.WriteLine("Total number of tasks = " + numOfTasks.ToString());
-                                        Console.WriteLine("Total valid moves = " + numOfPositions.ToString());
-                                        
 
             int[] tasksPosChunkSize = new int[numOfTasks];
             for (int i = 0; i < numOfTasks; i++)
@@ -85,32 +82,18 @@ namespace ChessEngine.Engine
                     positionsChunkSizeRest--;
                 }
 
-                                        Console.WriteLine("tasksPosChunkSize[" + i.ToString() + "] = " + tasksPosChunkSize[i].ToString());
             }
 
-            List<List<Board>> tasksPos = new List<List<Board>>();
-
-                                        Console.WriteLine("All availible moves:");
-                                        foreach (Board pos in succ.Positions)
-                                        {
-                                            Console.WriteLine(pos.ToString());
-                                        }
+            List<List<Board>> tasksPos = new List<List<Board>>();                 
                
             int idx = 0;
             for (int i = 0; i < numOfTasks; i++)
             {
                 tasksPos.Add(succ.Positions.GetRange(idx, tasksPosChunkSize[i]));
-                idx += tasksPosChunkSize[i];
-
-                                        Console.WriteLine("Moves availible for task " + i.ToString() + " :");
-                                        foreach (Board pos in tasksPos[i])
-                                        {
-                                            Console.WriteLine(pos.ToString());
-                                        }
+                idx += tasksPosChunkSize[i];                 
             }
 
             List<InterProcessData> dataToSend = new List<InterProcessData>();
-
             for ( int i = 0; i < numOfTasks; i++ )
             {
                 dataToSend.Add(new InterProcessData
@@ -122,21 +105,27 @@ namespace ChessEngine.Engine
                 });
             }
 
-            //wyslij do innych
             for (int i = 1; i < numOfTasks; i++)
             {
                 comm.Send<InterProcessData>(dataToSend[i], i, 0);
             }
 
-            MoveContent bestMoveOfThisThreadProbably = SzukajSzukaj(examineBoard, dataToSend[0].pos, dataToSend[0].depth, currentGameBook);
-            List<MoveContent> bestMovesFromOtherThreads = new List<MoveContent>();
-            bestMovesFromOtherThreads.Add(bestMoveOfThisThreadProbably);
+            DateTime startDate = DateTime.Now;
+
+            MoveContent thisThreadBestMove = SzukajSzukaj(examineBoard, dataToSend[0].pos, dataToSend[0].depth, currentGameBook);
+            List<MoveContent> bestMoves = new List<MoveContent>();
+            bestMoves.Add(thisThreadBestMove);
+
             for (int i = 1; i < numOfTasks; i++)
             {
-                bestMovesFromOtherThreads.Add(comm.Receive<MoveContent>(i, 0));
+                bestMoves.Add(comm.Receive<MoveContent>(i, 0));
             }
 
-            return bestMovesFromOtherThreads.OrderByDescending(m => m.Score).First();
+            DateTime endDate = DateTime.Now;
+            long msElapsed = (endDate.Ticks - startDate.Ticks) / 10000;
+            Console.WriteLine("Elapsed AI search time: " + msElapsed.ToString() + " ms");
+
+            return bestMoves.OrderByDescending(m => m.Score).First();
         }
 
         public static MoveContent SzukajSzukaj(Board examineBoard, List<Board> positions, int depth, List<OpeningMove> currentGameBook)
@@ -223,6 +212,8 @@ namespace ChessEngine.Engine
 
             plyDepthReached++;
             progress = 100;
+
+            Console.WriteLine("SKONCZYLEM!!!");
 
             return bestMove;
         }
