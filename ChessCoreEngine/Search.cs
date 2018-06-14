@@ -1,7 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Diagnostics;
 using MPI;
 using System.Linq;
 
@@ -27,8 +25,6 @@ namespace ChessEngine.Engine
                 return Move;
             }
         }
-
-       
 
         private static readonly Position[,] KillerMove = new Position[3,20];
         private static int kIndex;
@@ -112,7 +108,7 @@ namespace ChessEngine.Engine
 
             DateTime startDate = DateTime.Now;
 
-            MoveContent thisThreadBestMove = SzukajSzukaj(examineBoard, dataToSend[0].pos, dataToSend[0].depth, currentGameBook);
+            MoveContent thisThreadBestMove = Execute(examineBoard, dataToSend[0].pos, dataToSend[0].depth, currentGameBook);
             List<MoveContent> bestMoves = new List<MoveContent>();
             bestMoves.Add(thisThreadBestMove);
 
@@ -128,7 +124,7 @@ namespace ChessEngine.Engine
             return bestMoves.OrderByDescending(m => m.Score).First();
         }
 
-        public static MoveContent SzukajSzukaj(Board examineBoard, List<Board> positions, int depth, List<OpeningMove> currentGameBook)
+        internal static MoveContent Execute(Board examineBoard, List<Board> positions, int depth, List<OpeningMove> currentGameBook)
         {
             List<Position> pvChild = new List<Position>();
             int alpha = -400000000;
@@ -197,13 +193,6 @@ namespace ChessEngine.Engine
                 //If value is greater then alpha this is the best board
                 if (value > alpha || alpha == -400000000)
                 {
-                    //pvLine = pos.LastMove.ToString();
-
-                    //foreach (Position pvPos in pvChild)
-                    //{
-                    //    pvLine += " " + pvPos.ToString();
-                    //}
-
                     alpha = value;
                     bestMove = pos.LastMove;
                     bestMove.Score = value;
@@ -212,8 +201,6 @@ namespace ChessEngine.Engine
 
             plyDepthReached++;
             progress = 100;
-
-            Console.WriteLine("SKONCZYLEM!!!");
 
             return bestMove;
         }

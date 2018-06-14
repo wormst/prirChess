@@ -23,16 +23,17 @@ class Program
             else
             {
                 PieceMoves.InitiateChessPieceMotion();
-                bool odbieraj = true;
-                while (odbieraj)
+
+                bool continueWork = true;
+                while (continueWork)
                 {
                     var data = comm.Receive<InterProcessData>(0, 0);
 
                     if (data.ShallQuit)
                         break;
 
-                    MoveContent bestMove = Search.SzukajSzukaj(data.ExamineBoard, data.pos, data.depth, data.GameBook);
-                    comm.Send<MoveContent>(bestMove, 0, 0);
+                    MoveContent bestMove = Search.Execute(data.ExamineBoard, data.pos, data.depth, data.GameBook);
+                    comm.Send(bestMove, 0, 0);
                 }
             }
         }
@@ -44,15 +45,12 @@ class Program
 
 		var engine = new Engine();
 
-		Console.WriteLine("Chess Core");
-		Console.WriteLine("Created by Adam Berent");
+		Console.WriteLine("Chess");
 		Console.WriteLine("Version: 1.0.0");
 		Console.WriteLine("");
 		Console.WriteLine("Type quit to exit");
 		Console.WriteLine("Type show to show board");
 		Console.WriteLine("");
-		Console.WriteLine("feature setboard=1");
-
 
 		while (true)
 		{
