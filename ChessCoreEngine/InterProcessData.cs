@@ -17,7 +17,5 @@ namespace ChessEngine.Engine
         public List<OpeningMove> GameBook = new List<OpeningMove>();
         public Board ExamineBoard;
         public bool ShallQuit = false;
-
-
     }
 }

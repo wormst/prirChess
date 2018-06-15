@@ -24,8 +24,7 @@ class Program
             {
                 PieceMoves.InitiateChessPieceMotion();
 
-                bool continueWork = true;
-                while (continueWork)
+                while (true)
                 {
                     var data = comm.Receive<InterProcessData>(0, 0);
 
